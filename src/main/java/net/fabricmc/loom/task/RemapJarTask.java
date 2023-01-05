@@ -210,7 +210,10 @@ public abstract class RemapJarTask extends AbstractRemapJarTask {
 				}
 			}
 
-			params.getTinyRemapperBuildServiceUuid().set(UnsafeWorkQueueHelper.create(getProject(), tinyRemapperService.get()));
+			Supplier<TinyRemapperService> temp = tinyRemapperService;
+			tinyRemapperService = null; // Release the strong reference
+			params.getTinyRemapperBuildServiceUuid().set(UnsafeWorkQueueHelper.create(getProject(), temp.get()));
+
 			params.getRemapClasspath().from(getClasspath());
 
 			final boolean legacyMixin = extension.getMixin().getUseLegacyMixinAp().get();
@@ -355,7 +358,7 @@ public abstract class RemapJarTask extends AbstractRemapJarTask {
 	public abstract static class RemapAction extends AbstractRemapAction<RemapParams> {
 		private static final Logger LOGGER = LoggerFactory.getLogger(RemapAction.class);
 
-		private final TinyRemapperService tinyRemapperService;
+		private TinyRemapperService tinyRemapperService;
 		private TinyRemapper tinyRemapper;
 
 		public RemapAction() {
@@ -398,6 +401,8 @@ public abstract class RemapJarTask extends AbstractRemapJarTask {
 				}
 
 				throw ExceptionUtil.createDescriptiveWrapper(RuntimeException::new, "Failed to remap", e);
+			} finally {
+				tinyRemapperService = null;
 			}
 		}
 
